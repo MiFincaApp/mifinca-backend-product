@@ -77,11 +77,15 @@ public class ProductoController {
 
         if (productos.isEmpty()) {
             // Retornar mensaje personalizado cuando no hay coincidencias
-            return ResponseEntity
-                    .ok("Producto no se encuentra en este momento");
+            return ResponseEntity.ok("Producto no se encuentra en este momento");
         }
 
-        return ResponseEntity.ok(productos);
+        // Mapeo a DTO
+        List<ProductoConFincaDTO> productosDTO = productos.stream()
+                .map(ProductoConFincaDTO::new)
+                .collect(Collectors.toList());
+
+        return ResponseEntity.ok(productosDTO);
     }
 
     @PostMapping(value = "/finca/{fincaId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
