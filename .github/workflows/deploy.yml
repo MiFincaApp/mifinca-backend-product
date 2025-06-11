@@ -1,0 +1,47 @@
+name: Deploy API productos to Hetzner
+
+on:
+  push:
+    branches:
+      - main  # Ejecutar solo cuando haya push a main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest  # Usar un runner de Ubuntu para ejecutar el flujo
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3  # Descargar el código fuente
+
+    - name: Set up Java
+      uses: actions/setup-java@v3
+      with:
+        java-version: '21'       # Versión de Java usada en el build
+        distribution: 'temurin'
+
+    - name: Build with Maven
+      run: mvn clean package -Dmaven.test.skip=true
+
+    - name: Rename JAR for consistent deployment
+      run: mv target/*.jar mifinca-backend-product.jar  # Renombrar el JAR generado
+
+    - name: Copy JAR to VPS
+      uses: appleboy/scp-action@v0.1.4
+      with:
+        host: ${{ secrets.SERVER_HOST }}              # IP del VPS
+        username: ${{ secrets.SERVER_USER_NAME }}     # Usuario en el VPS
+        key: ${{ secrets.SERVER_SSH_KEY }}            # Clave privada SSH
+        port: ${{ secrets.SERVER_SSH_PORT }}
+        source: "mifinca-backend-product.jar"            # Solo se envía el JAR
+        target: ${{ secrets.SERVER_DEPLOY_PATH }}    
+
+    - name: Ejecutar script remoto para mover JAR, crear servicio y reiniciar
+      uses: appleboy/ssh-action@v1.0.0
+      with:
+        host: ${{ secrets.SERVER_HOST }}
+        username: ${{ secrets.SERVER_USER_NAME }}
+        key: ${{ secrets.SERVER_SSH_KEY }}
+        port: ${{ secrets.SERVER_SSH_PORT }}
+        script: |
+          chmod +x /home/gabriel/scripts/mifinca-backend-product-deploy.sh
+          /home/gabriel/scripts/mifinca-backend-product-deploy.sh
